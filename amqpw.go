@@ -2,10 +2,10 @@ package amqpw
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/fatih/structs"
 	"github.com/gobuffalo/buffalo/worker"
 	"github.com/markbates/going/defaults"
 	"github.com/markbates/going/randx"
@@ -26,6 +26,8 @@ type Options struct {
 	Exchange string
 	// MaxConcurrency restricts the amount of workers in parallel.
 	MaxConcurrency int
+	// Acknowledge is used to define if system must ack or not
+	Acknowledge bool
 }
 
 // ErrInvalidConnection is returned when the Connection opt is not defined.
@@ -55,6 +57,7 @@ func New(opts Options) *Adapter {
 		exchange:       opts.Exchange,
 		maxConcurrency: opts.MaxConcurrency,
 		ctx:            ctx,
+		acknowledge:	opts.Acknowledge,
 	}
 }
 
@@ -67,6 +70,7 @@ type Adapter struct {
 	exchange       string
 	ctx            context.Context
 	maxConcurrency int
+	acknowledge    bool
 }
 
 // Start connects to the broker.
@@ -76,7 +80,7 @@ func (q *Adapter) Start(ctx context.Context) error {
 	go func() {
 		select {
 		case <-ctx.Done():
-			q.Stop()
+			_ = q.Stop()
 		}
 	}()
 	// Ensure Connection is defined
@@ -160,18 +164,17 @@ func (q *Adapter) Register(name string, h worker.Handler) error {
 			sem <- true
 			q.Logger.Debugf("Received job \"%s\": %s", name, d.Body)
 
-			args := worker.Args{}
-			err := json.Unmarshal(d.Body, &args)
-			if err != nil {
-				q.Logger.Errorf("Unable to retreive job \"%s\" args", name)
-				continue
-			}
+			args := structs.Map(d)
+
 			if err := h(args); err != nil {
 				q.Logger.Errorf("Unable to process job \"%s\"", name)
 				continue
 			}
-			if err := d.Ack(false); err != nil {
-				q.Logger.Errorf("Unable to Ack job \"%s\"", name)
+			if q.acknowledge {
+				err := d.Ack(false)
+				if err != nil {
+					q.Logger.Errorf("Unable to Ack job \"%s\"", name)
+				}
 			}
 		}
 		for i := 0; i < cap(sem); i++ {
