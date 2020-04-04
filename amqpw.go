@@ -172,8 +172,6 @@ func (q *Adapter) Register(name string, h worker.Handler) error {
 			}
 			if q.acknowledge {
 				_ = d.Ack(false)
-			} else {
-				_ = d.Nack(false, true)
 			}
 		}
 		for i := 0; i < cap(sem); i++ {
