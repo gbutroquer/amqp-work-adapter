@@ -71,12 +71,12 @@ func Test_Perform(t *testing.T) {
 	var hit bool
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	q.Register("perform", func(worker.Args) error {
+	_ = q.Register("perform", func(worker.Args) error {
 		hit = true
 		wg.Done()
 		return nil
 	})
-	q.Perform(worker.Job{
+	_ = q.Perform(worker.Job{
 		Handler: "perform",
 	})
 	wg.Wait()
@@ -89,20 +89,20 @@ func Test_PerformMultiple(t *testing.T) {
 	var hitPerform1, hitPerform2 bool
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
-	q.Register("perform1", func(worker.Args) error {
+	_ = q.Register("perform1", func(worker.Args) error {
 		hitPerform1 = true
 		wg.Done()
 		return nil
 	})
-	q.Register("perform2", func(worker.Args) error {
+	_ = q.Register("perform2", func(worker.Args) error {
 		hitPerform2 = true
 		wg.Done()
 		return nil
 	})
-	q.Perform(worker.Job{
+	_ = q.Perform(worker.Job{
 		Handler: "perform1",
 	})
-	q.Perform(worker.Job{
+	_ = q.Perform(worker.Job{
 		Handler: "perform2",
 	})
 	wg.Wait()
@@ -116,12 +116,12 @@ func Test_PerformAt(t *testing.T) {
 	var hit bool
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	q.Register("perform_at", func(args worker.Args) error {
+	_ = q.Register("perform_at", func(args worker.Args) error {
 		hit = true
 		wg.Done()
 		return nil
 	})
-	q.PerformAt(worker.Job{
+	_ = q.PerformAt(worker.Job{
 		Handler: "perform_at",
 	}, time.Now().Add(5*time.Nanosecond))
 	wg.Wait()
@@ -134,12 +134,12 @@ func Test_PerformIn(t *testing.T) {
 	var hit bool
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	q.Register("perform_in", func(worker.Args) error {
+	_ = q.Register("perform_in", func(worker.Args) error {
 		hit = true
 		wg.Done()
 		return nil
 	})
-	q.PerformIn(worker.Job{
+	_ = q.PerformIn(worker.Job{
 		Handler: "perform_in",
 	}, 5*time.Nanosecond)
 	wg.Wait()

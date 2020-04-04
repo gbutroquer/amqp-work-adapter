@@ -31,7 +31,7 @@ type Options struct {
 }
 
 // ErrInvalidConnection is returned when the Connection opt is not defined.
-var ErrInvalidConnection = errors.New("invalid connection")
+var ErrInvalidConnection = errors.New("Invalid connection")
 
 // Ensures Adapter implements the buffalo.Worker interface.
 var _ worker.Worker = &Adapter{}
@@ -106,7 +106,7 @@ func (q *Adapter) Start(ctx context.Context) error {
 		)
 
 		if err != nil {
-			return errors.WithMessage(err, "unable to declare exchange")
+			return errors.WithMessage(err, "Unable to declare exchange")
 		}
 	}
 
@@ -128,7 +128,7 @@ func (q *Adapter) Stop() error {
 
 // Register consumes a task, using the declared worker.Handler
 func (q *Adapter) Register(name string, h worker.Handler) error {
-	q.Logger.Infof("Register job \"%s\"", name)
+	q.Logger.Infof("Registering job \"%s\"", name)
 
 	_, err := q.Channel.QueueDeclare(
 		name,
@@ -140,7 +140,7 @@ func (q *Adapter) Register(name string, h worker.Handler) error {
 	)
 
 	if err != nil {
-		return errors.WithMessage(err, "unable to create queue")
+		return errors.WithMessage(err, "Unable to create queue")
 	}
 
 	msgs, err := q.Channel.Consume(
@@ -167,14 +167,13 @@ func (q *Adapter) Register(name string, h worker.Handler) error {
 			args := structs.Map(d)
 
 			if err := h(args); err != nil {
-				q.Logger.Errorf("Unable to process job \"%s\"", name)
+				q.Logger.Errorf("Unable to process job \"%s\", %s", name, err)
 				continue
 			}
 			if q.acknowledge {
-				err := d.Ack(false)
-				if err != nil {
-					q.Logger.Errorf("Unable to Ack job \"%s\"", name)
-				}
+				_ = d.Ack(false)
+			} else {
+				_ = d.Nack(false, true)
 			}
 		}
 		for i := 0; i < cap(sem); i++ {
@@ -202,7 +201,7 @@ func (q Adapter) Perform(job worker.Job) error {
 	)
 
 	if err != nil {
-		q.Logger.Errorf("error enqueuing job \"%s\"", job)
+		q.Logger.Errorf("Error enqueuing job \"%s\", %s", job, err)
 		return errors.WithStack(err)
 	}
 	return nil
@@ -230,8 +229,7 @@ func (q Adapter) PerformIn(job worker.Job, t time.Duration) error {
 	)
 
 	if err != nil {
-		m := errors.WithMessage(err, fmt.Sprintf("error creating delayed temp queue for job %s", job.Handler))
-		q.Logger.Error(m)
+		q.Logger.Errorf("Error creating delayed temp queue for job \"%s\", %s", job.Handler, err)
 		return err
 	}
 
@@ -248,8 +246,7 @@ func (q Adapter) PerformIn(job worker.Job, t time.Duration) error {
 	)
 
 	if err != nil {
-		m := errors.WithMessage(err, fmt.Sprintf("error enqueuing job %s", job.Handler))
-		q.Logger.Error(m)
+		q.Logger.Errorf("Error enqueuing job \"%s\", %s", job.Handler, err)
 		return err
 	}
 	return nil
